@@ -201,14 +201,16 @@ public class AiChatService {
                 0.1
         );
 
-        OpenRouterResponse response = restClient.post()
-                .uri("/chat/completions")
-                .body(request)
-                .retrieve()
-                .body(OpenRouterResponse.class);
+        AiActionDecision decision;
 
-        String content = extractContent(response);
-        AiActionDecision decision = parseDecision(content);
+        try {
+            decision = requestDecisionWithRetry(request);
+        } catch (IllegalStateException exception) {
+            return new ChatResponse(
+                    "The AI assistant returned an invalid response. "
+                            + "Please try again."
+            );
+        }
 
         if (decision.action() == null) {
             throw new IllegalStateException(
@@ -788,6 +790,31 @@ public class AiChatService {
                     exception
             );
         }
+    }
+
+    private AiActionDecision requestDecisionWithRetry(
+            OpenRouterRequest request
+    ) {
+        IllegalStateException lastException = null;
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            OpenRouterResponse response = restClient.post()
+                    .uri("/chat/completions")
+                    .body(request)
+                    .retrieve()
+                    .body(OpenRouterResponse.class);
+
+            try {
+                return parseDecision(extractContent(response));
+            } catch (IllegalStateException exception) {
+                lastException = exception;
+            }
+        }
+
+        throw new IllegalStateException(
+                "AI returned an invalid response after retry",
+                lastException
+        );
     }
 
     private String extractContent(OpenRouterResponse response) {

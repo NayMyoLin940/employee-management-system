@@ -1,7 +1,11 @@
 import axios from 'axios'
 
+const apiOrigin = (
+  import.meta.env.VITE_API_BASE_URL || ''
+).replace(/\/$/, '')
+
 const client = axios.create({
-  baseURL: '/api',
+  baseURL: `${apiOrigin}/api`,
   headers: { 'Content-Type': 'application/json' },
   timeout: 60000,
 })
@@ -22,7 +26,10 @@ export function getChatError(error) {
   }
 
   if (error.response.status === 400) {
-    return error.response.data?.message || 'Please enter a valid message.'
+    return (
+      error.response.data?.message ||
+      'Please enter a valid message.'
+    )
   }
 
   return (
