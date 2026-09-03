@@ -517,6 +517,37 @@ class AiChatServiceTest {
         mockServer.verify();
     }
 
+    @Test
+    void shouldRetryWhenAiReturnsInvalidJson()
+            throws Exception {
+        when(employeeService.getAllEmployees())
+                .thenReturn(List.of());
+
+        expectContent("This is not valid JSON.");
+
+        String validDecision = objectMapper.writeValueAsString(
+                Map.of(
+                        "action", "QUERY",
+                        "reply", "There are no employees."
+                )
+        );
+
+        expectDecision(validDecision);
+
+        ChatResponse response = aiChatService.chat(
+                "How many employees are there?",
+                null
+        );
+
+        assertFalse(response.confirmationRequired());
+        assertFalse(response.dataChanged());
+        assertTrue(response.reply().contains(
+                "There are no employees."
+        ));
+
+        mockServer.verify();
+    }
+
     private void expectUpdateDecision(
             Long employeeId,
             String position
@@ -564,6 +595,12 @@ class AiChatServiceTest {
     private void expectDecision(
             String decision
     ) throws Exception {
+        expectContent(decision);
+    }
+
+    private void expectContent(
+            String content
+    ) throws Exception {
         String responseBody =
                 objectMapper.writeValueAsString(
                         Map.of(
@@ -575,7 +612,7 @@ class AiChatServiceTest {
                                                         "role",
                                                         "assistant",
                                                         "content",
-                                                        decision
+                                                        content
                                                 )
                                         )
                                 )
