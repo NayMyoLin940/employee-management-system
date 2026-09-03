@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
+import AiChatPage from './pages/AiChatPage'
 import DashboardPage from './pages/DashboardPage'
 import EmployeeDetailsPage from './pages/EmployeeDetailsPage'
 import EmployeeFormPage from './pages/EmployeeFormPage'
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="employees/new" element={<EmployeeFormPage />} />
         <Route path="employees/:id" element={<EmployeeDetailsPage />} />
         <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
+        <Route path="ai-chat" element={<AiChatPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
