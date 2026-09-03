@@ -4,6 +4,10 @@ public record AiActionDecision(
 
         String action,
         String reply,
+
+        Long employeeId,
+        String targetEmail,
+
         String name,
         String email,
         String phone,

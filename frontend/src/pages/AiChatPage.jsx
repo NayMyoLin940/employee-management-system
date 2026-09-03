@@ -12,13 +12,14 @@ const initialMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Hello! I can answer questions about your employees. Try asking who has the highest salary or how many employees work in each department.',
+    'Hello! I can answer questions about employees and help create or update employee records. Every data change requires your confirmation.',
 }
 
 export default function AiChatPage() {
   const [messages, setMessages] = useState([initialMessage])
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [confirmationToken, setConfirmationToken] = useState(null)
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -47,7 +48,25 @@ export default function AiChatPage() {
     setIsSending(true)
 
     try {
-      const response = await chatApi.send(message)
+      const response = await chatApi.send(
+        message,
+        confirmationToken,
+      )
+
+      if (
+        response.confirmationRequired &&
+        response.confirmationToken
+      ) {
+        setConfirmationToken(response.confirmationToken)
+      } else {
+        setConfirmationToken(null)
+      }
+
+      if (response.dataChanged) {
+        window.dispatchEvent(
+          new CustomEvent('employees:changed'),
+        )
+      }
 
       setMessages((current) => [
         ...current,
@@ -85,13 +104,14 @@ export default function AiChatPage() {
           <p className="eyebrow">AI ASSISTANT</p>
           <h1>Ask People</h1>
           <p className="subtitle">
-            Explore employee information using natural language.
+            Query employee information and perform protected
+            actions using natural language.
           </p>
         </div>
 
         <span className="ai-status">
           <span aria-hidden="true" />
-          Read-only
+          Protected actions
         </span>
       </header>
 
@@ -108,22 +128,32 @@ export default function AiChatPage() {
             return (
               <article
                 className={`chat-message ${
-                  isUser ? 'user-message' : 'assistant-message'
+                  isUser
+                    ? 'user-message'
+                    : 'assistant-message'
                 } ${isError ? 'chat-error' : ''}`}
                 key={message.id}
               >
-                <span className="message-avatar" aria-hidden="true">
-                  {isUser
-                    ? <UserRound size={18} />
-                    : <Bot size={18} />}
+                <span
+                  className="message-avatar"
+                  aria-hidden="true"
+                >
+                  {isUser ? (
+                    <UserRound size={18} />
+                  ) : (
+                    <Bot size={18} />
+                  )}
                 </span>
 
                 <div className="message-content">
                   {!isUser && (
                     <strong>
-                      {isError ? 'Unable to respond' : 'People AI'}
+                      {isError
+                        ? 'Unable to respond'
+                        : 'People AI'}
                     </strong>
                   )}
+
                   <p>{message.content}</p>
                 </div>
               </article>
@@ -132,7 +162,10 @@ export default function AiChatPage() {
 
           {isSending && (
             <article className="chat-message assistant-message">
-              <span className="message-avatar" aria-hidden="true">
+              <span
+                className="message-avatar"
+                aria-hidden="true"
+              >
                 <Sparkles size={18} />
               </span>
 
@@ -150,17 +183,29 @@ export default function AiChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        <form className="chat-composer" onSubmit={handleSubmit}>
-          <label className="sr-only" htmlFor="chat-message">
-            Ask a question about employees
+        <form
+          className="chat-composer"
+          onSubmit={handleSubmit}
+        >
+          <label
+            className="sr-only"
+            htmlFor="chat-message"
+          >
+            Send a message to the employee assistant
           </label>
 
           <textarea
             id="chat-message"
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) =>
+              setInput(event.target.value)
+            }
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your employees…"
+            placeholder={
+              confirmationToken
+                ? 'Type confirm or cancel…'
+                : 'Ask about your employees…'
+            }
             maxLength={1000}
             rows={1}
             disabled={isSending}
@@ -177,7 +222,9 @@ export default function AiChatPage() {
         </form>
 
         <p className="chat-hint">
-          Enter to send · Shift + Enter for a new line
+          {confirmationToken
+            ? 'A protected action is awaiting confirmation.'
+            : 'Enter to send · Shift + Enter for a new line'}
         </p>
       </div>
     </section>

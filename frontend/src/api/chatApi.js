@@ -7,8 +7,13 @@ const client = axios.create({
 })
 
 export const chatApi = {
-  send: async (message) =>
-    (await client.post('/chat', { message })).data,
+  send: async (message, confirmationToken = null) =>
+    (
+      await client.post('/chat', {
+        message,
+        confirmationToken,
+      })
+    ).data,
 }
 
 export function getChatError(error) {
@@ -20,6 +25,8 @@ export function getChatError(error) {
     return error.response.data?.message || 'Please enter a valid message.'
   }
 
-  return error.response.data?.message ||
+  return (
+    error.response.data?.message ||
     'The AI assistant is temporarily unavailable. Please try again.'
+  )
 }
